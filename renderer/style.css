@@ -1,0 +1,333 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #54212e;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+
+    background:
+        radial-gradient(circle at 15% 15%,
+            rgba(255, 65, 105, 0.40),
+            transparent 40%),
+        radial-gradient(circle at 85% 80%,
+            rgba(190, 20, 65, 0.30),
+            transparent 42%),
+        linear-gradient(135deg,
+            #fff0f2,
+            #fbd5dc,
+            #f8e0e7,
+            #fff1f3);
+
+    background-attachment: fixed;
+}
+
+/* HALOS FLOUTÉS */
+
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    filter: blur(110px);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: -1;
+}
+
+body::before {
+    background: #ff365f;
+    top: -150px;
+    left: -120px;
+}
+
+body::after {
+    background: #d7194f;
+    bottom: -150px;
+    right: -120px;
+}
+
+/* HEADER */
+
+.header {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border-bottom: 1px solid rgba(255,255,255,0.7);
+    padding: 22px 8%;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.logo {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #ed174c, #a90035);
+    color: white;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 27px;
+    font-weight: bold;
+    box-shadow: 0 5px 18px rgba(190, 0, 55, 0.25);
+}
+
+.brand h1 {
+    font-size: 23px;
+    color: #8f1839;
+}
+
+.brand p {
+    font-size: 13px;
+    color: #b66b7e;
+    margin-top: 3px;
+}
+
+/* MAIN */
+
+.container {
+    width: 90%;
+    max-width: 650px;
+    margin: 55px auto;
+}
+
+/* CARTES */
+
+.connection-card,
+.transfer-card {
+    background: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: 22px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 15px 40px rgba(150, 20, 55, 0.10);
+}
+
+h2 {
+    font-size: 22px;
+    color: #8f1839;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: #b66b7e;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+/* CONNEXION */
+
+.connection-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.join-area {
+    display: flex;
+    gap: 10px;
+}
+
+#roomCode {
+    flex: 1;
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #edc5d0;
+    background: rgba(255,255,255,0.8);
+    border-radius: 10px;
+    outline: none;
+    font-size: 14px;
+    color: #54212e;
+}
+
+#roomCode:focus {
+    border-color: #e52c58;
+    box-shadow: 0 0 0 3px rgba(229,44,88,0.12);
+}
+
+/* BOUTONS */
+
+button {
+    border: none;
+    border-radius: 10px;
+    padding: 13px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, #f02b59, #bb003d);
+    color: white;
+    box-shadow: 0 5px 15px rgba(190, 0, 55, 0.20);
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(190, 0, 55, 0.30);
+}
+
+.secondary-btn {
+    background: #f9dce4;
+    color: #b0003c;
+}
+
+.secondary-btn:hover {
+    background: #f4c6d3;
+    transform: translateY(-2px);
+}
+
+/* STATUT */
+
+.status-area {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 23px;
+    color: #b66b7e;
+    font-size: 13px;
+}
+
+.status-dot {
+    width: 9px;
+    height: 9px;
+    background: #ef6464;
+    border-radius: 50%;
+}
+
+.room-display {
+    margin-top: 13px;
+    color: #c2184b;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* TRANSFERT */
+
+.transfer-card {
+    text-align: center;
+}
+
+.transfer-icon {
+    width: 55px;
+    height: 55px;
+    border-radius: 17px;
+    background: linear-gradient(135deg, #ffe0e7, #f8c4d1);
+    color: #c2184b;
+    font-size: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 18px;
+}
+
+.transfer-card .subtitle {
+    margin-bottom: 25px;
+}
+
+.file-area {
+    border: 2px dashed #e9a7b9;
+    background: rgba(255, 240, 244, 0.75);
+    border-radius: 17px;
+    padding: 28px 20px;
+    margin-bottom: 20px;
+    transition: 0.2s;
+}
+
+.file-area:hover {
+    border-color: #d7194f;
+    background: rgba(255, 225, 233, 0.9);
+}
+
+.file-icon {
+    font-size: 35px;
+    margin-bottom: 12px;
+}
+
+.file-title {
+    color: #8f1839;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 7px;
+}
+
+.file-description {
+    color: #b66b7e;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+#fileInput {
+    display: block;
+    width: 100%;
+    font-size: 13px;
+    color: #80505d;
+}
+
+.send-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 15px;
+}
+
+/* FOOTER */
+
+footer {
+    text-align: center;
+    color: #b77b89;
+    font-size: 12px;
+    padding: 15px;
+    line-height: 1.8;
+}
+
+.creator {
+    color: #a90035;
+    font-size: 14px;
+    margin: 3px 0;
+}
+
+.creator strong {
+    font-weight: 800;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 550px) {
+    .header {
+        padding: 18px 5%;
+    }
+
+    .container {
+        margin: 30px auto;
+    }
+
+    .connection-card,
+    .transfer-card {
+        padding: 22px 17px;
+    }
+
+    .join-area {
+        flex-direction: column;
+    }
+
+    .join-area button {
+        width: 100%;
+    }
+}

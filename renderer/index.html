@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrossDrop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="brand">
+            <div class="logo">C</div>
+            <div>
+                <h1>CrossDrop</h1>
+                <p>Partagez vos fichiers simplement</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="connection-card">
+            <h2>Connexion</h2>
+            <p class="subtitle">Crée une session ou rejoins un appareil.</p>
+
+            <div class="connection-actions">
+                <button id="sendBtn" class="primary-btn">
+                    Créer une session
+                </button>
+
+                <div class="join-area">
+                    <input
+                        type="text"
+                        id="roomCode"
+                        placeholder="Code de connexion"
+                    >
+                    <button id="joinBtn" class="secondary-btn">
+                        Rejoindre
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-area">
+                <span class="status-dot"></span>
+                <p id="status">Déconnecté</p>
+            </div>
+
+            <p id="roomDisplay" class="room-display"></p>
+        </section>
+
+        <section class="transfer-card">
+            <div class="transfer-icon">⇄</div>
+
+            <h2>Transférer un fichier</h2>
+
+            <p class="subtitle">
+                Sélectionne un fichier à envoyer vers un autre appareil.
+            </p>
+
+            <div class="file-area">
+                <div class="file-icon">📁</div>
+
+                <p class="file-title">Choisir un fichier</p>
+
+                <p class="file-description">
+                    ZIP, PDF, images, vidéos et tous les autres formats.
+                </p>
+
+                <input type="file" id="fileInput">
+            </div>
+
+            <button id="sendFileBtn" class="primary-btn send-btn">
+                Envoyer le fichier
+            </button>
+        </section>
+
+        <footer>
+            <p>CrossDrop © 2026</p>
+            <p class="creator">Créé par <strong>Wallace</strong> 🌹</p>
+            <p>Transfert direct entre appareils</p>
+        </footer>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
