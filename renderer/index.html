@@ -59,17 +59,18 @@
                 Sélectionne un fichier à envoyer vers un autre appareil.
             </p>
 
-            <div class="file-area">
-                <div class="file-icon">📁</div>
+           <div class="file-area" id="fileArea">
+   		 <div class="file-icon">📁</div>
 
-                <p class="file-title">Choisir un fichier</p>
+   		 <p class="file-title">Choisir des fichiers ou un dossier</p>
 
-                <p class="file-description">
-                    ZIP, PDF, images, vidéos et tous les autres formats.
-                </p>
+    		<p class="file-description">
+       			 Clique ici pour sélectionner des fichiers ou un dossier complet.
+   		 </p>
 
-                <input type="file" id="fileInput">
-            </div>
+    		<input type="file" id="fileInput" multiple>
+    		<input type="file" id="folderInput" webkitdirectory directory multiple>
+	   </div>
 
             <button id="sendFileBtn" class="primary-btn send-btn">
                 Envoyer le fichier

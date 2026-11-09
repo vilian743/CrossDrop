@@ -1,7 +1,9 @@
+
 const io = require("socket.io-client");
 const Peer = require("simple-peer");
 const { ipcRenderer } = require("electron");
 const crypto = require("crypto");
+const JSZip = require("jszip");
 
 (async () => {
     // =====================================
@@ -17,6 +19,10 @@ const crypto = require("crypto");
     let currentRoom = null;
     let serverOnline = false;
     let incomingFile = null;
+
+    let selectedFiles = [];
+    let selectedFolder = false;
+    let transferInProgress = false;
 
     const CHUNK_SIZE = 16 * 1024;
     const MAX_BUFFER_SIZE = 1024 * 1024;
@@ -52,7 +58,10 @@ const crypto = require("crypto");
     const roomCode = document.getElementById("roomCode");
     const roomDisplay = document.getElementById("roomDisplay");
     const status = document.getElementById("status");
+
     const fileInput = document.getElementById("fileInput");
+    const folderInput = document.getElementById("folderInput");
+    const fileArea = document.getElementById("fileArea");
     const sendFileBtn = document.getElementById("sendFileBtn");
 
     const transferProgress = document.getElementById("transferProgress");
@@ -60,6 +69,168 @@ const crypto = require("crypto");
     const progressPercent = document.getElementById("progressPercent");
     const progressBar = document.getElementById("progressBar");
     const progressDetails = document.getElementById("progressDetails");
+
+    if (
+        !sendBtn || !joinBtn || !roomCode || !roomDisplay ||
+        !status || !fileInput || !folderInput || !fileArea ||
+        !sendFileBtn || !transferProgress || !progressLabel ||
+        !progressPercent || !progressBar || !progressDetails
+    ) {
+        console.error("Un ou plusieurs éléments HTML sont introuvables.");
+        return;
+    }
+
+    // =====================================
+    // ZONE DE SELECTION INVISIBLE
+    // =====================================
+
+    const pickerOverlay = document.createElement("button");
+    pickerOverlay.type = "button";
+    pickerOverlay.className = "file-picker-overlay";
+    pickerOverlay.setAttribute(
+        "aria-label",
+        "Choisir des fichiers ou un dossier"
+    );
+    
+
+    fileArea.appendChild(pickerOverlay);
+
+    const fileInfo = document.createElement("p");
+    fileInfo.className = "file-selection-info";
+    fileInfo.textContent = "Aucun fichier sélectionné";
+
+    fileArea.appendChild(fileInfo);
+    let selectionModal = null;
+let selectionEscapeHandler = null;
+
+function closeSelectionModal() {
+    if (selectionModal) {
+        selectionModal.remove();
+        selectionModal = null;
+    }
+
+    if (selectionEscapeHandler) {
+        document.removeEventListener("keydown", selectionEscapeHandler);
+        selectionEscapeHandler = null;
+    }
+}
+
+function openSelectionModal() {
+    closeSelectionModal();
+
+    const modal = document.createElement("div");
+    modal.className = "selection-modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+
+    const card = document.createElement("div");
+    card.className = "selection-modal-card";
+
+    const title = document.createElement("h2");
+    title.textContent = "Que souhaites-tu sélectionner ?";
+
+    const description = document.createElement("p");
+    description.textContent = "Choisis ce que tu veux envoyer avec CrossDrop.";
+
+    const options = document.createElement("div");
+    options.className = "selection-modal-options";
+
+    function createOption(icon, name, detail, action) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "selection-option";
+
+        const iconElement = document.createElement("span");
+        iconElement.className = "selection-option-icon";
+        iconElement.textContent = icon;
+
+        const textContainer = document.createElement("span");
+
+        const optionTitle = document.createElement("span");
+        optionTitle.className = "selection-option-title";
+        optionTitle.textContent = name;
+
+        const optionDescription = document.createElement("span");
+        optionDescription.className = "selection-option-description";
+        optionDescription.textContent = detail;
+
+        textContainer.append(optionTitle, optionDescription);
+        button.append(iconElement, textContainer);
+
+        button.addEventListener("click", () => {
+            closeSelectionModal();
+            action();
+        });
+
+        return button;
+    }
+
+    options.append(
+        createOption("📄", "Des fichiers", "Sélectionner un ou plusieurs fichiers", () => fileInput.click()),
+        createOption("📁", "Un dossier", "Envoyer un dossier complet", () => folderInput.click())
+    );
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "selection-modal-cancel";
+    cancelButton.textContent = "Annuler";
+    cancelButton.addEventListener("click", closeSelectionModal);
+
+    card.append(title, description, options, cancelButton);
+    modal.appendChild(card);
+
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeSelectionModal();
+    });
+
+    selectionEscapeHandler = (event) => {
+        if (event.key === "Escape") closeSelectionModal();
+    };
+
+    document.addEventListener("keydown", selectionEscapeHandler);
+
+    document.body.appendChild(modal);
+    selectionModal = modal;
+}
+
+    pickerOverlay.addEventListener("click", () => {
+    if (transferInProgress) return;
+    openSelectionModal();
+    });
+
+    // =====================================
+    // SELECTION DES FICHIERS
+    // =====================================
+
+    function displaySelectedFiles(files, isFolder) {
+        selectedFiles = Array.from(files);
+        selectedFolder = isFolder;
+
+        if (selectedFiles.length === 0) {
+            fileInfo.textContent = "Aucun fichier sélectionné";
+            return;
+        }
+
+        const totalSize = selectedFiles.reduce(
+            (total, file) => total + file.size,
+            0
+        );
+
+        fileInfo.textContent =
+            selectedFiles.length + " fichier(s) sélectionné(s) • " +
+            formatBytes(totalSize) +
+            (isFolder ? " • Dossier à compresser en ZIP" : "");
+    }
+
+    fileInput.addEventListener("change", () => {
+        displaySelectedFiles(fileInput.files, false);
+        folderInput.value = "";
+    });
+
+    folderInput.addEventListener("change", () => {
+        displaySelectedFiles(folderInput.files, true);
+        fileInput.value = "";
+    });
 
     // =====================================
     // CONNEXION SERVEUR
@@ -126,8 +297,6 @@ const crypto = require("crypto");
         currentPeer.on("signal", (data) => {
             if (currentPeer !== peer || !currentRoom) return;
 
-            console.log("SIGNAL GENERE");
-
             socket.emit("signal", {
                 room: currentRoom,
                 signal: data
@@ -142,25 +311,19 @@ const crypto = require("crypto");
             roomDisplay.textContent =
                 "✅ Connexion établie ! Code : " + currentRoom;
         });
-                // =====================================
+
         // RECEPTION DES DONNEES
-        // =====================================
 
         currentPeer.on("data", async (data) => {
             if (currentPeer !== peer) return;
 
             try {
-                let text;
-
-                if (typeof data === "string") {
-                    text = data;
-                } else {
-                    text = new TextDecoder().decode(data);
-                }
+                const text = typeof data === "string"
+                    ? data
+                    : new TextDecoder().decode(data);
 
                 const message = JSON.parse(text);
 
-                // DEBUT DU FICHIER
                 if (message.type === "file-start") {
                     incomingFile = {
                         name: message.name,
@@ -181,7 +344,6 @@ const crypto = require("crypto");
                         "📥 Réception : " + message.name;
                 }
 
-                // MORCEAU DU FICHIER
                 else if (message.type === "file-chunk") {
                     if (!incomingFile) return;
 
@@ -200,16 +362,8 @@ const crypto = require("crypto");
                         incomingFile.received,
                         incomingFile.size
                     );
-
-                    console.log(
-                        "PROGRESSION :",
-                        incomingFile.received,
-                        "/",
-                        incomingFile.size
-                    );
                 }
 
-                // FIN DU FICHIER
                 else if (message.type === "file-end") {
                     if (!incomingFile) return;
 
@@ -227,11 +381,6 @@ const crypto = require("crypto");
                     setTimeout(() => {
                         URL.revokeObjectURL(url);
                     }, 5000);
-
-                    console.log(
-                        "FICHIER RECU :",
-                        incomingFile.name
-                    );
 
                     updateProgress(
                         "✅ Réception terminée !",
@@ -275,8 +424,7 @@ const crypto = require("crypto");
 
     sendBtn.addEventListener("click", () => {
         if (!serverOnline) {
-            roomDisplay.textContent =
-                "❌ Serveur hors ligne";
+            roomDisplay.textContent = "❌ Serveur hors ligne";
             return;
         }
 
@@ -294,8 +442,6 @@ const crypto = require("crypto");
         roomDisplay.textContent =
             "✅ Session créée ! Code : " + currentRoom;
 
-        console.log("SESSION CREEE :", currentRoom);
-
         socket.emit("join-room", currentRoom);
     });
 
@@ -305,8 +451,7 @@ const crypto = require("crypto");
 
     joinBtn.addEventListener("click", () => {
         if (!serverOnline) {
-            roomDisplay.textContent =
-                "❌ Serveur hors ligne";
+            roomDisplay.textContent = "❌ Serveur hors ligne";
             return;
         }
 
@@ -324,8 +469,6 @@ const crypto = require("crypto");
 
         currentRoom = code;
         incomingFile = null;
-
-        console.log("REJOINT LA SESSION :", currentRoom);
 
         roomDisplay.textContent =
             "⏳ Connexion à la session : " + currentRoom;
@@ -346,21 +489,16 @@ const crypto = require("crypto");
 
         createPeer(true);
     });
-        // =====================================
+
+    // =====================================
     // SIGNAL WEBRTC
     // =====================================
 
     socket.on("signal", (signal) => {
-        console.log("SIGNAL RECU");
-
-        if (!peer) {
-            console.log("PEER NON DISPONIBLE");
-            return;
-        }
+        if (!peer) return;
 
         try {
             peer.signal(signal);
-            console.log("SIGNAL APPLIQUE");
         } catch (err) {
             console.error("ERREUR SIGNAL :", err);
         }
@@ -392,98 +530,192 @@ const crypto = require("crypto");
     // ENVOYER UN FICHIER
     // =====================================
 
+    async function sendOneFile(file, currentPeer) {
+        console.log("DEBUT ENVOI :", file.name);
+
+        updateProgress(
+            "📤 Envoi : " + file.name,
+            0,
+            file.size
+        );
+
+        await waitForBuffer(currentPeer);
+
+        currentPeer.send(JSON.stringify({
+            type: "file-start",
+            name: file.name,
+            size: file.size
+        }));
+
+        for (
+            let offset = 0;
+            offset < file.size;
+            offset += CHUNK_SIZE
+        ) {
+            const chunk = file.slice(
+                offset,
+                offset + CHUNK_SIZE
+            );
+
+            const buffer = await chunk.arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+
+            let binary = "";
+
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+
+            const base64 = btoa(binary);
+
+            await waitForBuffer(currentPeer);
+
+            currentPeer.send(JSON.stringify({
+                type: "file-chunk",
+                content: base64
+            }));
+
+            updateProgress(
+                "📤 Envoi : " + file.name,
+                Math.min(offset + bytes.length, file.size),
+                file.size
+            );
+        }
+
+        await waitForBuffer(currentPeer);
+
+        currentPeer.send(JSON.stringify({
+            type: "file-end"
+        }));
+
+        console.log("FICHIER ENVOYE :", file.name);
+    }
+
+    // =====================================
+    // COMPRESSER UN DOSSIER EN ZIP
+    // =====================================
+
+    async function createFolderZip(files) {
+        const zip = new JSZip();
+
+        let folderName = "Dossier_CrossDrop";
+
+        if (files[0].webkitRelativePath) {
+            folderName =
+                files[0].webkitRelativePath.split("/")[0] ||
+                folderName;
+        }
+
+        for (const file of files) {
+            let relativePath = file.webkitRelativePath;
+
+            if (relativePath) {
+                const parts = relativePath.split("/");
+                parts.shift();
+                relativePath = parts.join("/");
+            } else {
+                relativePath = file.name;
+            }
+
+            if (!relativePath) {
+                relativePath = file.name;
+            }
+
+            zip.file(relativePath, file);
+        }
+
+        const zipBlob = await zip.generateAsync({
+            type: "blob",
+            compression: "DEFLATE",
+            compressionOptions: {
+                level: 3
+            }
+        }, (metadata) => {
+            updateProgress(
+                "📦 Compression du dossier...",
+                Math.floor(metadata.percent),
+                100
+            );
+        });
+
+        return new File(
+            [zipBlob],
+            folderName + ".zip",
+            { type: "application/zip" }
+        );
+    }
+
+    // =====================================
+    // ENVOYER LA SELECTION
+    // =====================================
+
     sendFileBtn.addEventListener("click", async () => {
+        if (transferInProgress) return;
+
         if (!peer || !peer.connected) {
             alert("Connexion WebRTC non établie");
             return;
         }
 
-        const file = fileInput.files[0];
-
-        if (!file) {
-            alert("Sélectionne un fichier avant de l'envoyer");
+        if (selectedFiles.length === 0) {
+            alert("Sélectionne des fichiers ou un dossier avant l'envoi.");
             return;
         }
 
         const currentPeer = peer;
 
-        try {
-            console.log("DEBUT ENVOI :", file.name);
+        transferInProgress = true;
+        sendFileBtn.disabled = true;
+        sendFileBtn.textContent = "Envoi en cours...";
 
-            // AFFICHER LE DEBUT DE LA PROGRESSION
-            updateProgress(
-                "📤 Envoi : " + file.name,
-                0,
-                file.size
+        try {
+            let filesToSend = [];
+
+            if (selectedFolder) {
+                const zipFile = await createFolderZip(selectedFiles);
+                filesToSend.push(zipFile);
+            } else {
+                filesToSend = [...selectedFiles];
+            }
+
+            for (const file of filesToSend) {
+                await sendOneFile(file, currentPeer);
+            }
+
+            const totalSize = filesToSend.reduce(
+                (total, file) => total + file.size,
+                0
             );
 
-            // INFORMATIONS DU FICHIER
-            await waitForBuffer(currentPeer);
-
-            currentPeer.send(JSON.stringify({
-                type: "file-start",
-                name: file.name,
-                size: file.size
-            }));
-
-            // ENVOI PAR MORCEAUX
-            for (
-                let offset = 0;
-                offset < file.size;
-                offset += CHUNK_SIZE
-            ) {
-                const chunk = file.slice(
-                    offset,
-                    offset + CHUNK_SIZE
-                );
-
-                const buffer = await chunk.arrayBuffer();
-                const bytes = new Uint8Array(buffer);
-
-                let binary = "";
-
-                for (let i = 0; i < bytes.length; i++) {
-                    binary += String.fromCharCode(bytes[i]);
-                }
-
-                const base64 = btoa(binary);
-
-                await waitForBuffer(currentPeer);
-
-                currentPeer.send(JSON.stringify({
-                    type: "file-chunk",
-                    content: base64
-                }));
-
-                // MISE A JOUR DE LA PROGRESSION
-                updateProgress(
-                    "📤 Envoi : " + file.name,
-                    Math.min(offset + bytes.length, file.size),
-                    file.size
-                );
-            }
-                        // FIN DU FICHIER
-            await waitForBuffer(currentPeer);
-
-            currentPeer.send(JSON.stringify({
-                type: "file-end"
-            }));
-
-            console.log("FICHIER ENVOYE :", file.name);
-
-            // CONFIRMATION DE FIN D'ENVOI
             updateProgress(
                 "✅ Envoi terminé !",
-                file.size,
-                file.size
+                totalSize,
+                totalSize
             );
 
-            alert("✅ Fichier envoyé !");
+            roomDisplay.textContent =
+                "✅ Envoi terminé : " + filesToSend.length + " fichier(s)";
+
+            alert("✅ Envoi terminé !");
+
+            selectedFiles = [];
+            selectedFolder = false;
+            fileInput.value = "";
+            folderInput.value = "";
+            fileInfo.textContent = "Aucun fichier sélectionné";
 
         } catch (err) {
             console.error("ERREUR ENVOI :", err);
 
-            alert("❌ Erreur pendant l'envoi du fichier");
+            alert(
+                "❌ Erreur pendant l'envoi : " +
+                (err.message || "Erreur inconnue")
+            );
+
+        } finally {
+            transferInProgress = false;
+            sendFileBtn.disabled = false;
+            sendFileBtn.textContent = "Envoyer le fichier";
         }
     });
 
