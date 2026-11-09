@@ -1,6 +1,6 @@
 {
   "name": "crossdrop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CrossDrop - Transfert de fichiers P2P",
   "main": "main.js",
   "scripts": {
