@@ -1,0 +1,13 @@
+
+{
+  "name": "crossdrop-cloud-server",
+  "version": "1.0.0",
+  "description": "Serveur de mise en relation CrossDrop",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.4"
+  }
+}
