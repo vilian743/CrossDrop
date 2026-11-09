@@ -331,3 +331,58 @@ footer {
         width: 100%;
     }
 }
+
+
+
+/* =====================================
+   BARRE DE PROGRESSION CROSSDROP
+===================================== */
+
+.transfer-progress {
+    width: 100%;
+    margin-top: 25px;
+    padding: 18px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+}
+
+.transfer-progress[hidden] {
+    display: none;
+}
+
+.progress-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: inherit;
+}
+
+#progressPercent {
+    font-size: 18px;
+}
+
+.progress-track {
+    width: 100%;
+    height: 12px;
+    overflow: hidden;
+    background: rgba(128, 128, 128, 0.25);
+    border-radius: 20px;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #4776e6, #38c7a5);
+    border-radius: 20px;
+    transition: width 0.15s ease;
+}
+
+.progress-details {
+    margin: 10px 0 0;
+    font-size: 13px;
+    opacity: 0.75;
+}

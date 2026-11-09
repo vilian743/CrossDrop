@@ -1,14 +1,14 @@
-
 const io = require("socket.io-client");
 const Peer = require("simple-peer");
 const { ipcRenderer } = require("electron");
+const crypto = require("crypto");
 
 (async () => {
     // =====================================
     // CONFIGURATION
     // =====================================
 
-    const serverUrl = await ipcRenderer.invoke("get-server-url");
+    const serverUrl = "https://crossdrop-server.onrender.com";
     const socket = io(serverUrl);
 
     console.log("SERVEUR CROSSDROP :", serverUrl);
@@ -21,6 +21,28 @@ const { ipcRenderer } = require("electron");
     const CHUNK_SIZE = 16 * 1024;
     const MAX_BUFFER_SIZE = 1024 * 1024;
 
+    function formatBytes(bytes) {
+        if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(1) + " Ko";
+        }
+
+        return (bytes / (1024 * 1024)).toFixed(2) + " Mo";
+    }
+
+    function updateProgress(label, transferred, total) {
+        const percent = total > 0
+            ? Math.min(100, Math.floor((transferred / total) * 100))
+            : 100;
+
+        transferProgress.hidden = false;
+        progressLabel.textContent = label;
+        progressPercent.textContent = percent + " %";
+        progressBar.style.width = percent + "%";
+
+        progressDetails.textContent =
+            formatBytes(transferred) + " / " + formatBytes(total);
+    }
+
     // =====================================
     // ELEMENTS HTML
     // =====================================
@@ -32,6 +54,12 @@ const { ipcRenderer } = require("electron");
     const status = document.getElementById("status");
     const fileInput = document.getElementById("fileInput");
     const sendFileBtn = document.getElementById("sendFileBtn");
+
+    const transferProgress = document.getElementById("transferProgress");
+    const progressLabel = document.getElementById("progressLabel");
+    const progressPercent = document.getElementById("progressPercent");
+    const progressBar = document.getElementById("progressBar");
+    const progressDetails = document.getElementById("progressDetails");
 
     // =====================================
     // CONNEXION SERVEUR
@@ -114,6 +142,9 @@ const { ipcRenderer } = require("electron");
             roomDisplay.textContent =
                 "✅ Connexion établie ! Code : " + currentRoom;
         });
+                // =====================================
+        // RECEPTION DES DONNEES
+        // =====================================
 
         currentPeer.on("data", async (data) => {
             if (currentPeer !== peer) return;
@@ -140,6 +171,12 @@ const { ipcRenderer } = require("electron");
 
                     console.log("RECEPTION :", message.name);
 
+                    updateProgress(
+                        "📥 Réception : " + message.name,
+                        0,
+                        message.size
+                    );
+
                     roomDisplay.textContent =
                         "📥 Réception : " + message.name;
                 }
@@ -157,6 +194,12 @@ const { ipcRenderer } = require("electron");
 
                     incomingFile.chunks.push(bytes);
                     incomingFile.received += bytes.length;
+
+                    updateProgress(
+                        "📥 Réception : " + incomingFile.name,
+                        incomingFile.received,
+                        incomingFile.size
+                    );
 
                     console.log(
                         "PROGRESSION :",
@@ -188,6 +231,12 @@ const { ipcRenderer } = require("electron");
                     console.log(
                         "FICHIER RECU :",
                         incomingFile.name
+                    );
+
+                    updateProgress(
+                        "✅ Réception terminée !",
+                        incomingFile.size,
+                        incomingFile.size
                     );
 
                     roomDisplay.textContent =
@@ -236,9 +285,8 @@ const { ipcRenderer } = require("electron");
             peer = null;
         }
 
-        currentRoom = Math.random()
-            .toString(36)
-            .substring(2, 8)
+        currentRoom = crypto.randomBytes(6)
+            .toString("hex")
             .toUpperCase();
 
         incomingFile = null;
@@ -298,8 +346,7 @@ const { ipcRenderer } = require("electron");
 
         createPeer(true);
     });
-
-    // =====================================
+        // =====================================
     // SIGNAL WEBRTC
     // =====================================
 
@@ -363,6 +410,13 @@ const { ipcRenderer } = require("electron");
         try {
             console.log("DEBUT ENVOI :", file.name);
 
+            // AFFICHER LE DEBUT DE LA PROGRESSION
+            updateProgress(
+                "📤 Envoi : " + file.name,
+                0,
+                file.size
+            );
+
             // INFORMATIONS DU FICHIER
             await waitForBuffer(currentPeer);
 
@@ -400,9 +454,15 @@ const { ipcRenderer } = require("electron");
                     type: "file-chunk",
                     content: base64
                 }));
-            }
 
-            // FIN DU FICHIER
+                // MISE A JOUR DE LA PROGRESSION
+                updateProgress(
+                    "📤 Envoi : " + file.name,
+                    Math.min(offset + bytes.length, file.size),
+                    file.size
+                );
+            }
+                        // FIN DU FICHIER
             await waitForBuffer(currentPeer);
 
             currentPeer.send(JSON.stringify({
@@ -410,6 +470,13 @@ const { ipcRenderer } = require("electron");
             }));
 
             console.log("FICHIER ENVOYE :", file.name);
+
+            // CONFIRMATION DE FIN D'ENVOI
+            updateProgress(
+                "✅ Envoi terminé !",
+                file.size,
+                file.size
+            );
 
             alert("✅ Fichier envoyé !");
 
