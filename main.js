@@ -1,8 +1,10 @@
 
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const path = require("path");
 const dgram = require("dgram");
 const { startServer, stopServer } = require("./server/signaling");
+
 
 const DISCOVERY_PORT = 41234;
 const SERVER_PORT = 3000;
@@ -139,7 +141,70 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
 
-app.whenReady().then(createWindow);
+// =====================================
+// MISES A JOUR AUTOMATIQUES
+// =====================================
+
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+function setupAutoUpdates() {
+    // Pas de recherche de mise à jour pendant le développement
+    if (!app.isPackaged) return;
+
+    autoUpdater.on("checking-for-update", () => {
+        console.log("Recherche de mises à jour...");
+    });
+
+    autoUpdater.on("update-available", async (info) => {
+        const result = await dialog.showMessageBox({
+            type: "info",
+            title: "Mise à jour disponible",
+            message: `Une nouvelle version de CrossDrop (${info.version}) est disponible.`,
+            detail: "Souhaites-tu la télécharger maintenant ?",
+            buttons: ["Télécharger", "Plus tard"],
+            defaultId: 0,
+            cancelId: 1
+        });
+
+        if (result.response === 0) {
+            autoUpdater.downloadUpdate();
+        }
+    });
+
+    autoUpdater.on("update-not-available", () => {
+        console.log("CrossDrop est déjà à jour.");
+    });
+
+    autoUpdater.on("update-downloaded", async (info) => {
+        const result = await dialog.showMessageBox({
+            type: "info",
+            title: "Mise à jour prête",
+            message: `CrossDrop ${info.version} est prêt à être installé.`,
+            detail: "L'application va redémarrer pour installer la mise à jour.",
+            buttons: ["Installer maintenant", "Plus tard"],
+            defaultId: 0,
+            cancelId: 1
+        });
+
+        if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+        }
+    });
+
+    autoUpdater.on("error", (error) => {
+        console.error("Erreur de mise à jour :", error);
+    });
+
+    autoUpdater.checkForUpdates().catch((error) => {
+        console.error("Impossible de vérifier les mises à jour :", error);
+    });
+}
+
+app.whenReady().then(() => {
+    createWindow();
+    setupAutoUpdates();
+});
 
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {

@@ -539,3 +539,199 @@ footer {
         transform: translateY(0) scale(1);
     }
 }
+
+/* BOUTON MODE SOMBRE */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.theme-toggle {
+    padding: 10px 15px;
+    border: 1px solid rgba(215, 25, 79, 0.25);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.65);
+    color: #a90035;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+.theme-toggle:hover {
+    background: #ffe0e8;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 450px) {
+    .header {
+        flex-wrap: wrap;
+    }
+
+    .theme-toggle {
+        margin-left: auto;
+    }
+}
+
+/* ============================= */
+/* MODE SOMBRE CROSSDROP */
+/* ============================= */
+
+body.dark-mode {
+    color: #f8e8ed;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(190, 20, 65, 0.25), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(100, 20, 65, 0.30), transparent 42%),
+        linear-gradient(135deg, #160d16, #24101d, #301321, #180d18);
+    background-attachment: fixed;
+}
+
+body.dark-mode::before {
+    background: #a90045;
+}
+
+body.dark-mode::after {
+    background: #6d174c;
+}
+
+body.dark-mode .header {
+    background: rgba(25, 12, 24, 0.75);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .brand h1,
+body.dark-mode h2 {
+    color: #ff8eae;
+}
+
+body.dark-mode .brand p,
+body.dark-mode .subtitle,
+body.dark-mode .status-area,
+body.dark-mode footer {
+    color: #c49aaa;
+}
+
+body.dark-mode .connection-card,
+body.dark-mode .transfer-card {
+    background: rgba(43, 22, 39, 0.82);
+    border-color: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+}
+
+body.dark-mode #roomCode {
+    background: rgba(20, 10, 20, 0.85);
+    border-color: #754056;
+    color: #fff0f5;
+}
+
+body.dark-mode #roomCode::placeholder {
+    color: #a98494;
+}
+
+body.dark-mode .secondary-btn {
+    background: #51263d;
+    color: #ffb2c8;
+}
+
+body.dark-mode .secondary-btn:hover {
+    background: #69304d;
+}
+
+body.dark-mode .transfer-icon {
+    background: linear-gradient(135deg, #57263f, #74304d);
+    color: #ff9fba;
+}
+
+body.dark-mode .file-area {
+    background: rgba(35, 16, 30, 0.8);
+    border-color: #8e4966;
+}
+
+body.dark-mode .file-area:hover {
+    background: rgba(75, 25, 48, 0.9);
+    border-color: #ff6f9c;
+}
+
+body.dark-mode .file-title {
+    color: #ff9fba;
+}
+
+body.dark-mode .file-description {
+    color: #c49aaa;
+}
+
+body.dark-mode .file-selection-info,
+body.dark-mode .creator,
+body.dark-mode .room-display {
+    color: #ff8eae;
+}
+
+body.dark-mode .theme-toggle {
+    background: rgba(70, 35, 55, 0.85);
+    color: #ffd0df;
+    border-color: rgba(255, 150, 190, 0.3);
+}
+
+body.dark-mode .theme-toggle:hover {
+    background: #65304d;
+}
+
+/* Fenêtre de sélection */
+
+body.dark-mode .selection-modal-card {
+    background: rgba(39, 19, 35, 0.98);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .selection-modal-card h2 {
+    color: #ff9fba;
+}
+
+body.dark-mode .selection-modal-card p {
+    color: #c49aaa;
+}
+
+body.dark-mode .selection-option {
+    background: #321b2c;
+    border-color: #654056;
+    color: #ffe8f0;
+}
+
+body.dark-mode .selection-option:hover {
+    background: #482338;
+    border-color: #d77bb5;
+}
+
+body.dark-mode .selection-option-icon {
+    background: #57263f;
+}
+
+body.dark-mode .selection-option-description {
+    color: #c49aaa;
+}
+
+body.dark-mode .selection-modal-cancel {
+    color: #d3a6b8;
+}
+
+
+
+/* =====================================
+   EFFET GLISSER-DEPOSER
+===================================== */
+
+.file-area.drag-over {
+    border-color: #d7194f;
+    background: rgba(255, 225, 233, 0.95);
+    box-shadow: 0 0 0 4px rgba(215, 25, 79, 0.12);
+    transform: scale(1.01);
+}
+
+body.dark-mode .file-area.drag-over {
+    border-color: #ff6f9c;
+    background: rgba(75, 25, 48, 0.95);
+    box-shadow: 0 0 0 4px rgba(255, 111, 156, 0.15);
+}

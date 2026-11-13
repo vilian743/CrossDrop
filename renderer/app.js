@@ -58,6 +58,37 @@ const JSZip = require("jszip");
     const roomCode = document.getElementById("roomCode");
     const roomDisplay = document.getElementById("roomDisplay");
     const status = document.getElementById("status");
+    const themeToggle = document.getElementById("themeToggle");
+
+// =====================================
+// MODE CLAIR / MODE SOMBRE
+// =====================================
+
+function applyTheme(isDark) {
+    document.body.classList.toggle("dark-mode", isDark);
+
+    themeToggle.textContent = isDark
+        ? "☀️ Mode clair"
+        : "🌙 Mode sombre";
+
+    themeToggle.setAttribute("aria-pressed", String(isDark));
+}
+
+// Restaurer le thème choisi précédemment
+const savedTheme = localStorage.getItem("crossdrop-theme");
+applyTheme(savedTheme === "dark");
+
+// Changer de thème au clic
+themeToggle.addEventListener("click", () => {
+    const isDark = !document.body.classList.contains("dark-mode");
+
+    applyTheme(isDark);
+
+    localStorage.setItem(
+        "crossdrop-theme",
+        isDark ? "dark" : "light"
+    );
+});
 
     const fileInput = document.getElementById("fileInput");
     const folderInput = document.getElementById("folderInput");
@@ -198,6 +229,7 @@ function openSelectionModal() {
     openSelectionModal();
     });
 
+
     // =====================================
     // SELECTION DES FICHIERS
     // =====================================
@@ -231,6 +263,96 @@ function openSelectionModal() {
         displaySelectedFiles(folderInput.files, true);
         fileInput.value = "";
     });
+
+    // =====================================
+    // GLISSER-DEPOSER
+    // =====================================
+
+    function readDroppedEntry(entry, rootFiles) {
+        return new Promise((resolve, reject) => {
+            if (entry.isFile) {
+                entry.file((file) => {
+                    file.crossdropRelativePath = entry.fullPath.replace(/^\/+/, "");
+                    rootFiles.push(file);
+                    resolve();
+                }, reject);
+
+            } else if (entry.isDirectory) {
+                const reader = entry.createReader();
+
+                function readAllEntries() {
+                    reader.readEntries(async (entries) => {
+                        if (entries.length === 0) {
+                            resolve();
+                            return;
+                        }
+
+                        try {
+                            for (const child of entries) {
+                                await readDroppedEntry(child, rootFiles);
+                            }
+
+                            readAllEntries();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }, reject);
+                }
+
+                readAllEntries();
+
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    fileArea.addEventListener("dragover", (event) => {
+        event.preventDefault();
+
+        if (!transferInProgress) {
+            fileArea.classList.add("drag-over");
+        }
+    });
+
+    fileArea.addEventListener("dragleave", (event) => {
+        if (!fileArea.contains(event.relatedTarget)) {
+            fileArea.classList.remove("drag-over");
+        }
+    });
+
+    fileArea.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        fileArea.classList.remove("drag-over");
+
+        if (transferInProgress) return;
+
+        const items = Array.from(event.dataTransfer.items || []);
+        const entries = items
+            .map(item => item.webkitGetAsEntry?.())
+            .filter(Boolean);
+
+        if (entries.length === 0) {
+            displaySelectedFiles(event.dataTransfer.files, false);
+            return;
+        }
+
+        try {
+            const droppedFiles = [];
+            const containsFolder = entries.some(entry => entry.isDirectory);
+
+            for (const entry of entries) {
+                await readDroppedEntry(entry, droppedFiles);
+            }
+
+            displaySelectedFiles(droppedFiles, containsFolder);
+
+        } catch (error) {
+            console.error("Erreur glisser-déposer :", error);
+            alert("Impossible de lire le fichier ou le dossier déposé.");
+        }
+    });
+
 
     // =====================================
     // CONNEXION SERVEUR
@@ -595,55 +717,56 @@ function openSelectionModal() {
     // COMPRESSER UN DOSSIER EN ZIP
     // =====================================
 
-    async function createFolderZip(files) {
-        const zip = new JSZip();
+    
+async function createFolderZip(files) {
+    const zip = new JSZip();
 
-        let folderName = "Dossier_CrossDrop";
+    const firstPath =
+        files[0].crossdropRelativePath ||
+        files[0].webkitRelativePath ||
+        "";
 
-        if (files[0].webkitRelativePath) {
-            folderName =
-                files[0].webkitRelativePath.split("/")[0] ||
-                folderName;
+    const folderName =
+        firstPath.split("/")[0] || "Dossier_CrossDrop";
+
+    for (const file of files) {
+        let relativePath =
+            file.crossdropRelativePath ||
+            file.webkitRelativePath ||
+            file.name;
+
+        if (relativePath.startsWith(folderName + "/")) {
+            relativePath = relativePath.substring(folderName.length + 1);
         }
 
-        for (const file of files) {
-            let relativePath = file.webkitRelativePath;
-
-            if (relativePath) {
-                const parts = relativePath.split("/");
-                parts.shift();
-                relativePath = parts.join("/");
-            } else {
-                relativePath = file.name;
-            }
-
-            if (!relativePath) {
-                relativePath = file.name;
-            }
-
-            zip.file(relativePath, file);
+        if (!relativePath) {
+            relativePath = file.name;
         }
 
-        const zipBlob = await zip.generateAsync({
-            type: "blob",
-            compression: "DEFLATE",
-            compressionOptions: {
-                level: 3
-            }
-        }, (metadata) => {
-            updateProgress(
-                "📦 Compression du dossier...",
-                Math.floor(metadata.percent),
-                100
-            );
-        });
-
-        return new File(
-            [zipBlob],
-            folderName + ".zip",
-            { type: "application/zip" }
-        );
+        zip.file(relativePath, file);
     }
+
+    const zipBlob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: {
+            level: 3
+        }
+    }, (metadata) => {
+        updateProgress(
+            "📦 Compression du dossier...",
+            Math.floor(metadata.percent),
+            100
+        );
+    });
+
+    return new File(
+        [zipBlob],
+        folderName + ".zip",
+        { type: "application/zip" }
+    );
+}
+
 
     // =====================================
     // ENVOYER LA SELECTION
